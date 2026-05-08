@@ -6,7 +6,10 @@ All notable changes to these scripts are documented here.
 
 ## OotD_GiftedOneDragon.js
 
-### v1.1.0 — Current
+### v1.2.0 — Current
+- **Level-up watcher fix**: `BackgroundFeatureList` did not register correctly in MPMB v13 — the watcher never existed on the sheet. Replaced with `calcChanges["hp"]` attached directly to `MagicItemsList["crown of the dragonlords"]` (both `spellcaster` and `non-spellcaster` variants). The Crown is guaranteed on-sheet once attuned, making it a reliable host for the level-change hook.
+
+### v1.1.0
 - **Console-free bonding**: Crown `eval` now fires `ootdBondDragon()` directly on attunement. JS console previously required.
 - **Reload guard**: If a dragon is already bonded, Crown `eval` exits silently on sheet reload instead of re-triggering the dialogue.
 - **Reliable level-up watcher**: Replaced the broken `FeatsList` `changeeval` approach (which could never fire because `prereqeval` returned false) with `BackgroundFeatureList` + `calcChanges["hp"]` + `CurrentVars` level-change detection.

@@ -12,6 +12,12 @@
     Sheet:      v13.2.0+
     Load order: After both scripts above.
 
+    CHANGELOG v1.2.0:
+    - Level-up watcher: BackgroundFeatureList did not register in MPMB v13.
+      Replaced with calcChanges["hp"] on MagicItemsList["crown of the
+      dragonlords"] (both spellcaster and non-spellcaster variants).
+      Watcher is now attached to the Crown which is guaranteed on-sheet.
+
     CHANGELOG v1.1.0:
     - Console-free bonding: Crown eval fires ootdBondDragon() directly.
       Reload guard exits silently if dragon already bonded.
@@ -360,23 +366,29 @@ var ootdUpdateDragonOnLevelUp = function() {
 };
 
 // ── LEVEL-UP WATCHER ──────────────────────────────────────────
-// Uses BackgroundFeatureList + calcChanges["hp"].
+// v1.1.0 used BackgroundFeatureList + calcChanges["hp"] here.
+// BackgroundFeatureList did not register correctly in MPMB v13 —
+// the watcher never existed on the sheet.
 //
-// WHY NOT FeatsList changeeval:
-//   prereqeval returns false → feat can never be selected →
-//   changeeval never fires. That approach (v1.0) was dead code.
-//
-// WHY calcChanges["hp"]:
-//   MPMB recalculates HP on every level-up. This hook fires
-//   reliably for any character with this background feature,
-//   regardless of class. We gate logic on CurrentVars level-change
-//   detection to avoid running on every recalc.
+// v1.2.0: Watcher moved into MagicItemsList["crown of the dragonlords"]
+// calcChanges["hp"] below. The Crown is guaranteed on-sheet once
+// attuned, making it a reliable host for the level-change hook.
 
-BackgroundFeatureList["gifted one: dragon bond watcher"] = {
-    name        : "Gifted One: Dragon Bond Watcher",
-    source      : [["OotD-GD", 0]],
-    description : "Internal. Auto-updates bonded dragon HP and stage on level-up. Do not remove while dragon is bonded.",
-    calcChanges : {
+// ── CROWN OF THE DRAGONLORDS — EXTEND MAGIC ITEM ─────────────
+// eval fires on attunement → triggers bond dialogue (with reload guard).
+// removeeval is informational only; bond persists after Crown removal.
+// calcChanges["hp"] fires on every HP recalc (i.e. level-up) and
+// drives the level-up watcher (v1.2.0: moved here from BackgroundFeatureList).
+
+if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragonlords"]) {
+    var crownEntry = MagicItemsList["crown of the dragonlords"];
+    var crownEval = function() { ootdBondDragon(); };
+    var crownRemoveEval = function() {
+        var dragon = ootdFindDragonCompanion();
+        if (dragon) console.println("OotD-GD: Crown removed. Bond is permanent; no action taken.");
+        else console.println("OotD-GD: Crown removed before bonding.");
+    };
+    var crownCalcChanges = {
         "hp" : function(totalHD, HDobj, prefix) {
             var dragon = ootdFindDragonCompanion();
             if (!dragon) return;
@@ -389,39 +401,30 @@ BackgroundFeatureList["gifted one: dragon bond watcher"] = {
             } catch(e) {}
             if (currentLevel !== lastLevel) {
                 console.println("OotD-GD: Level change " + lastLevel + " → " + currentLevel + ". Updating dragon.");
-                try { if (typeof CurrentVars !== "undefined") CurrentVars[OOTD_GD_LEVEL_VAR_KEY] = currentLevel; } catch(e) {}
+                try {
+                    if (typeof CurrentVars !== "undefined")
+                        CurrentVars[OOTD_GD_LEVEL_VAR_KEY] = currentLevel;
+                } catch(e) {}
                 ootdUpdateDragonOnLevelUp();
             }
             // Must not return a value — would alter character HP.
         }
-    }
-};
-
-// ── CROWN OF THE DRAGONLORDS — EXTEND MAGIC ITEM ─────────────
-// eval fires on attunement → triggers bond dialogue (with reload guard).
-// removeeval is informational only; bond persists after Crown removal.
-
-if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragonlords"]) {
-    var crownEntry = MagicItemsList["crown of the dragonlords"];
-    var crownEval = function() { ootdBondDragon(); };
-    var crownRemoveEval = function() {
-        var dragon = ootdFindDragonCompanion();
-        if (dragon) console.println("OotD-GD: Crown removed. Bond is permanent; no action taken.");
-        else console.println("OotD-GD: Crown removed before bonding.");
     };
     if (crownEntry["spellcaster"]) {
-        crownEntry["spellcaster"].eval       = crownEval;
-        crownEntry["spellcaster"].removeeval = crownRemoveEval;
-        console.println("OotD-GD: Extended Crown [spellcaster] with Bond Dragon eval");
+        crownEntry["spellcaster"].eval        = crownEval;
+        crownEntry["spellcaster"].removeeval  = crownRemoveEval;
+        crownEntry["spellcaster"].calcChanges = crownCalcChanges;
+        console.println("OotD-GD: Extended Crown [spellcaster] with Bond Dragon eval + level watcher");
     }
     if (crownEntry["non-spellcaster"]) {
-        crownEntry["non-spellcaster"].eval       = crownEval;
-        crownEntry["non-spellcaster"].removeeval = crownRemoveEval;
-        console.println("OotD-GD: Extended Crown [non-spellcaster] with Bond Dragon eval");
+        crownEntry["non-spellcaster"].eval        = crownEval;
+        crownEntry["non-spellcaster"].removeeval  = crownRemoveEval;
+        crownEntry["non-spellcaster"].calcChanges = crownCalcChanges;
+        console.println("OotD-GD: Extended Crown [non-spellcaster] with Bond Dragon eval + level watcher");
     }
 } else {
     console.println("OotD-GD Error: Crown of the Dragonlords not found. Load OdysseyOfTheDragonlords_v13.js first.");
 }
 
-console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.1.0).");
+console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.2.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");
