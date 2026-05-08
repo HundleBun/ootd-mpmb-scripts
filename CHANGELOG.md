@@ -6,7 +6,10 @@ All notable changes to these scripts are documented here.
 
 ## OotD_GiftedOneDragon.js
 
-### v1.6.0 — Current
+### v1.7.0 — Current
+- **Unbreakable Bond (level 20)**: Max Usages and Recovery now correctly written alongside the feature name. Correct field names confirmed via field enumeration: `Limited Feature Max Usages X` and `Limited Feature Recovery X`. Previous v1.4.0 removal used wrong names (`Limited Feature X Max` / `Limited Feature X Recovery`) which are not real PDF fields.
+
+### v1.6.0 — superseded by v1.7.0
 - **Name field fix**: Write to `Comp.Desc.Name` (confirmed real PDF field via field enumeration diagnostic). Removed `Comp.Use.CreatureName` — not present in the PDF's 332 companion fields; writes were silently discarded.
 - **Notes field fix**: Write to `Cnote.Left` (the actual Notes panel, labeled `Text.Header.NotesComp = 'Notes'`). Removed `Comp.Use.Notes` — also not a real PDF field. Fallback to `Comp.Use.Traits` if `Cnote.Left` write fails.
 - **Removed**: Field enumeration diagnostic block.

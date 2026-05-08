@@ -12,6 +12,13 @@
     Sheet:      v13.2.0+
     Load order: After both scripts above.
 
+    CHANGELOG v1.7.0:
+    - Unbreakable Bond (level 20): write Max Usages and Recovery alongside
+      feature name. Correct field names confirmed via enumeration diagnostic:
+      "Limited Feature Max Usages X" and "Limited Feature Recovery X".
+      Previous v1.4.0 removal used wrong field names ("Limited Feature X Max"
+      / "Limited Feature X Recovery") which do not exist in the PDF.
+
     CHANGELOG v1.6.0:
     - Name field: write to Comp.Desc.Name (confirmed real PDF field via
       field enumeration diagnostic). Removed Comp.Use.CreatureName —
@@ -417,6 +424,8 @@ var ootdUpdateDragonOnLevelUp = function() {
                     var sn = What("Limited Feature " + slot);
                     if (!sn || sn.trim() === "") {
                         Value("Limited Feature " + slot, bondFeatureName);
+                        Value("Limited Feature Max Usages " + slot, "1");
+                        Value("Limited Feature Recovery " + slot, "long rest");
                         console.println("OotD-GD: Added Unbreakable Bond tracker to Limited Feature " + slot);
                         break;
                     }
@@ -487,26 +496,5 @@ if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragon
     console.println("OotD-GD Error: Crown of the Dragonlords not found. Load OdysseyOfTheDragonlords_v13.js first.");
 }
 
-// ── DIAGNOSTIC — enumerate Limited Feature fields ─────────────
-// Catches both "Limited Feature X" (PDF label) and any "limfea"
-// shorthand MPMB may use internally.
-(function() {
-    console.println("DIAG LF: Scanning for Limited Feature and limfea fields...");
-    var count = 0;
-    for (var fi = 0; fi < this.numFields; fi++) {
-        var fn = this.getNthFieldName(fi);
-        var fnLower = fn.toLowerCase();
-        if (fn.indexOf("Limited Feature") === 0 || fnLower.indexOf("limfea") !== -1) {
-            var fval = "";
-            try { fval = What(fn) || ""; } catch(e) { fval = "READ_ERR"; }
-            console.println("LF FIELD [" + count + "] " + fn +
-                " = '" + (fval.length > 60 ? fval.substring(0, 60) + "..." : fval) + "'");
-            count++;
-        }
-    }
-    console.println("DIAG LF: " + count + " fields found.");
-})();
-// ── END DIAGNOSTIC ────────────────────────────────────────────
-
-console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.6.0).");
+console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.7.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");
