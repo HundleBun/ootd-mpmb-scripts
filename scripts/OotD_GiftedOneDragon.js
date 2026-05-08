@@ -23,42 +23,7 @@
       diagnostic). Fallback to Comp.Use.Features if Notes write fails.
     - Removed: all diagnostic code.
 
-    CHANGELOG v1.4.0:
-    - Notes field: all writes now target Comp.Use.Traits (correct MPMB
-      companion field) instead of Comp.Use.Notes (non-existent field).
-    - Notes write: appends script section below existing MPMB trait
-      content instead of overwriting it. Strips and rewrites only the
-      script section on subsequent writes to avoid duplication.
-    - Unbreakable Bond: removed Value() writes for Max and Recovery —
-      MPMB v13 calculates these dynamically and does not expose them
-      as writable PDF fields. Name write only.
-
-    CHANGELOG v1.3.0:
-    - Nickname fix: write to both Comp.Use.Nickname and Comp.Use.Name
-      on initial bond and on upgrade, with a 1-second app.setTimeOut
-      deferred write to account for companion page initialization delay.
-    - Upgrade: hoist newPrefix to function scope to prevent scoping
-      failures in Acrobat JS engine.
-    - Upgrade: capture dragon name from both Nickname and Name fields
-      before any remove/add operations.
-    - Debug: added notes prefix log before ootdWriteDragonNotes on
-      upgrade path.
-
-    CHANGELOG v1.2.0:
-    - Level-up watcher: BackgroundFeatureList did not register in MPMB v13.
-      Replaced with calcChanges["hp"] on MagicItemsList["crown of the
-      dragonlords"] (both spellcaster and non-spellcaster variants).
-      Watcher is now attached to the Crown which is guaranteed on-sheet.
-
-    CHANGELOG v1.1.0:
-    - Console-free bonding: Crown eval fires ootdBondDragon() directly.
-      Reload guard exits silently if dragon already bonded.
-    - Reliable level-up watcher: Replaced broken FeatsList changeeval
-      (prereqeval=false meant it could never fire) with
-      BackgroundFeatureList + calcChanges["hp"] + CurrentVars
-      level-change detection.
-    - Removed: dead FeatsList watcher, ootdAddBondButton(),
-      ootdRemoveBondButton(), notepad band-aid.
+    Full version history: see CHANGELOG.md in the repo root.
 */
 
 var iFileName = "OotD_GiftedOneDragon.js";
