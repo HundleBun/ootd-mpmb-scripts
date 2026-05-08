@@ -489,5 +489,61 @@ if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragon
 }
 
 
+// ── DIAGNOSTIC — write probe (remove after confirmed) ─────────
+(function() {
+    var diagCompFunc = ootdGetCompanionFunctions();
+    if (diagCompFunc) {
+        var diagFound = diagCompFunc.find("young bronze dragon");
+        if (diagFound && diagFound.length > 0) {
+            var diagP = diagFound[0];
+            console.println("DIAG prefix: " + diagP);
+            var fieldMap = [
+                ["Comp.Use.Nickname",          "N1"],
+                ["Comp.Use.Name",              "N2"],
+                ["Comp.Use.PlayerName",        "N3"],
+                ["Comp.Use.CharacterName",     "N4"],
+                ["Comp.Use.CreatureName",      "N5"],
+                ["Comp.Use.Creature",          "N6"],
+                ["Comp.Use.Race",              "N7"],
+                ["Comp.Use.Type",              "N8"],
+                ["Comp.Use.Notes",             "N9"],
+                ["Comp.Use.ExtraInfo",         "A1"],
+                ["Comp.Use.AdditionalInfo",    "A2"],
+                ["Comp.Use.Background",        "A3"],
+                ["Comp.Use.Extra",             "A4"],
+                ["Comp.Use.OtherInfo",         "A5"],
+                ["Comp.Use.Features",          "A6"],
+                ["Comp.Use.FeatDesc",          "A7"],
+                ["Comp.Use.Proficiencies",     "A8"],
+                ["Comp.Use.Languages",         "A9"],
+                ["Comp.Use.Appearance",        "B1"],
+                ["Comp.Use.Backstory",         "B2"],
+                ["Comp.Use.Bonds",             "B3"],
+                ["Comp.Use.Flaws",             "B4"],
+                ["Comp.Use.Ideals",            "B5"],
+                ["Comp.Use.PersonalityTraits", "B6"],
+                ["Comp.Use.Traits",            "B7"],
+                ["Comp.Use.SensesDef",         "B8"],
+                ["Comp.Use.Attacks.Extra",     "B9"]
+            ];
+            for (var i = 0; i < fieldMap.length; i++) {
+                var fieldName = fieldMap[i][0];
+                var code      = fieldMap[i][1];
+                try {
+                    Value(diagP + fieldName, code);
+                    console.println("DIAG WRITE OK  [" + code + "] → " + fieldName);
+                } catch(e) {
+                    console.println("DIAG WRITE ERR [" + code + "] → " + fieldName + ": " + e);
+                }
+            }
+        } else {
+            console.println("DIAG young bronze dragon not found");
+        }
+    } else {
+        console.println("DIAG companion functions unavailable");
+    }
+})();
+// ── END DIAGNOSTIC ────────────────────────────────────────────
+
 console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.5.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");
