@@ -4,6 +4,17 @@ All notable changes to these scripts are documented here.
 
 ---
 
+## OotD_Diagnostic.js
+
+### v1.0.0 — Current
+- Initial release.
+- **Layer 1 — OotD Script Health** (auto-run on load): checks AmazonianFix patch, Crown extensions, EpicPaths feats, Dirge spell, dragon bonded state, dragon HP, dragon name, dragon notes, Unbreakable Bond slot, CurrentVars state. PASS/WARN/FAIL/N/A output labeled `[HEALTH]`.
+- **Layer 2 — General Diagnostic Utilities** (console-callable, not OotD-specific): `ootdDiagHelp()`, `ootdDiagScanFields(pattern)`, `ootdDiagCompanion(creatureName)`, `ootdDiagLimitedFeatures()`, `ootdDiagCurrentVars()`. Output labeled `[UTIL]`.
+- Document reference captured at load time (`_ootdDiagDoc`) so console-callable functions can access `numFields`/`getNthFieldName` outside the load-time `this` context.
+- Degrades gracefully if production scripts are not loaded — reports WARN/UNAVAILABLE rather than throwing.
+
+---
+
 ## OotD_GiftedOneDragon.js
 
 ### v1.7.0 — Current

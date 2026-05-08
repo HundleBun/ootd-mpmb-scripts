@@ -17,6 +17,7 @@ This is the most common source of errors. Scripts must be loaded in this exact s
 2. OotD_AmazonianFix.js              <-- patches the base script
 3. OotD_GiftedOneDragon.js           <-- depends on AmazonianFix
 4. OotD_EpicPaths.js                 <-- independent of GiftedOne, but after AmazonianFix
+5. OotD_Diagnostic.js                <-- OPTIONAL: load only when troubleshooting
 ```
 
 Why this order matters:
@@ -35,7 +36,7 @@ Why this order matters:
 3. In the bookmarks list, find and expand **Scripts**.
 4. Click **Add Script File**.
 5. A file picker opens. Navigate to and select `OdysseyOfTheDragonlords_v13.js` first.
-6. Repeat for `OotD_AmazonianFix.js`, then `OotD_GiftedOneDragon.js`, then `OotD_EpicPaths.js`.
+6. Repeat for `OotD_AmazonianFix.js`, then `OotD_GiftedOneDragon.js`, then `OotD_EpicPaths.js`. Add `OotD_Diagnostic.js` last only if you are troubleshooting.
 7. **Save the PDF** (Ctrl+S / Cmd+S).
 8. **Close and reopen the PDF** — scripts execute on load.
 
@@ -54,6 +55,34 @@ OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.
 ```
 
 If you see errors instead, check the load order and confirm all scripts are present.
+
+---
+
+## Using the Diagnostic Script
+
+`OotD_Diagnostic.js` is an optional script that runs health checks and provides field investigation tools. Load it last (after all four production scripts) only when you need to investigate a problem. Remove it when done — it adds console output on every PDF load.
+
+**When the diagnostic script is loaded**, it automatically prints a health summary on every PDF open:
+
+```
+OotD-DIAG [HEALTH] AmazonianFix ................... PASS
+OotD-DIAG [HEALTH] Crown extensions ............... PASS
+OotD-DIAG [HEALTH] EpicPaths feats ................ PASS
+OotD-DIAG [HEALTH] Dragon bonded .................. PASS [bronze / young]
+...
+```
+
+**For deeper investigation**, open the JS Console (Ctrl+J) and call utilities directly:
+
+| Function | What it does |
+|---|---|
+| `ootdDiagHelp()` | List all utilities and the troubleshooting workflow |
+| `ootdDiagScanFields("keyword")` | Find all PDF fields matching a keyword — start here for any unknown problem |
+| `ootdDiagCompanion("creature name")` | Enumerate all fields on any companion page (dragon, stimfay, etc.) |
+| `ootdDiagLimitedFeatures()` | List all Limited Feature fields, warn on incomplete slots |
+| `ootdDiagCurrentVars()` | Show OotD dragon state stored in CurrentVars |
+
+The `[HEALTH]` output is OotD-specific. The `[UTIL]` functions work for any character, class, or companion — not just OotD.
 
 ---
 
