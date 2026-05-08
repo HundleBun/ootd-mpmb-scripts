@@ -6,7 +6,14 @@ All notable changes to these scripts are documented here.
 
 ## OotD_GiftedOneDragon.js
 
-### v1.2.0 — Current
+### v1.3.0 — Current
+- **Nickname fix (initial bond)**: Write to both `Comp.Use.Nickname` and `Comp.Use.Name` fields immediately on bond, plus a 1-second `app.setTimeOut` deferred write to handle companion page initialization delay.
+- **Nickname fix (upgrade)**: Same dual-field write + deferred write applied when carrying the name over to the Young Dragon companion page.
+- **Upgrade scoping fix**: `newPrefix` hoisted to function scope in `ootdUpdateDragonOnLevelUp` to prevent Acrobat JS engine scoping failures.
+- **Upgrade name capture**: Dragon name now read from `Comp.Use.Nickname` with `Comp.Use.Name` as fallback, captured before any remove/add operations.
+- **Debug logging**: Notes prefix logged before `ootdWriteDragonNotes` on upgrade path for test verification.
+
+### v1.2.0
 - **Level-up watcher fix**: `BackgroundFeatureList` did not register correctly in MPMB v13 — the watcher never existed on the sheet. Replaced with `calcChanges["hp"]` attached directly to `MagicItemsList["crown of the dragonlords"]` (both `spellcaster` and `non-spellcaster` variants). The Crown is guaranteed on-sheet once attuned, making it a reliable host for the level-change hook.
 
 ### v1.1.0

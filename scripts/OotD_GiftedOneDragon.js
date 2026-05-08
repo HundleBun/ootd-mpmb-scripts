@@ -12,6 +12,17 @@
     Sheet:      v13.2.0+
     Load order: After both scripts above.
 
+    CHANGELOG v1.3.0:
+    - Nickname fix: write to both Comp.Use.Nickname and Comp.Use.Name
+      on initial bond and on upgrade, with a 1-second app.setTimeOut
+      deferred write to account for companion page initialization delay.
+    - Upgrade: hoist newPrefix to function scope to prevent scoping
+      failures in Acrobat JS engine.
+    - Upgrade: capture dragon name from both Nickname and Name fields
+      before any remove/add operations.
+    - Debug: added notes prefix log before ootdWriteDragonNotes on
+      upgrade path.
+
     CHANGELOG v1.2.0:
     - Level-up watcher: BackgroundFeatureList did not register in MPMB v13.
       Replaced with calcChanges["hp"] on MagicItemsList["crown of the
@@ -265,10 +276,30 @@ var ootdBondDragon = function() {
         });
         return;
     }
+    // Set companion name — write to both Nickname and Name fields
+    // to account for MPMB companion page field naming inconsistency.
+    // Also attempt a delayed write in case the page hasn't fully
+    // initialized by the time the initial write fires.
     try {
-        if (dragonName !== defaultName && typeof Value === "function")
+        if (typeof Value === "function") {
             Value(prefix + "Comp.Use.Nickname", dragonName);
-    } catch(e) { /* non-critical */ }
+            Value(prefix + "Comp.Use.Name", dragonName);
+        }
+    } catch(e) {
+        console.println("OotD-GD Warning: Could not set dragon name (initial): " + e);
+    }
+    try {
+        app.setTimeOut(
+            "try { " +
+            "Value('" + prefix + "Comp.Use.Nickname', '" + dragonName.replace(/'/g, "\\'") + "'); " +
+            "Value('" + prefix + "Comp.Use.Name', '" + dragonName.replace(/'/g, "\\'") + "'); " +
+            "console.println('OotD-GD: Delayed name write fired for " + dragonName.replace(/'/g, "\\'") + "'); " +
+            "} catch(e) { console.println('OotD-GD Warning: Delayed name write failed: ' + e); }",
+            1000
+        );
+    } catch(e) {
+        console.println("OotD-GD Warning: Could not schedule delayed name write: " + e);
+    }
     ootdSetDragonHP(prefix);
     ootdApplyProfToSaves(prefix);
     ootdWriteDragonNotes(prefix, dragonName, dragonType, "wyrmling");
@@ -291,12 +322,23 @@ var ootdBondDragon = function() {
 var ootdUpdateDragonOnLevelUp = function() {
     var dragon = ootdFindDragonCompanion();
     if (!dragon) return;
+
     var totalLevel = (typeof classes !== "undefined" && classes.totallevel) ? classes.totallevel : 1;
-    var prefix = dragon.prefix, dragonType = dragon.type, stage = dragon.stage;
+    var prefix     = dragon.prefix;
+    var dragonType = dragon.type;
+    var stage      = dragon.stage;
+    var newPrefix  = false; // hoisted to function scope — prevents scoping failures in Acrobat JS engine
+
+    // Capture name before any remove/add operations.
+    // Try Nickname first, then Name field as fallback.
     var dragonName = "";
     try { dragonName = What(prefix + "Comp.Use.Nickname") || ""; } catch(e) {}
-    if (!dragonName) dragonName = dragonType.charAt(0).toUpperCase() + dragonType.slice(1) +
-                                  (stage === "wyrmling" ? " Dragon Wyrmling" : " Dragon");
+    try { if (!dragonName) dragonName = What(prefix + "Comp.Use.Name") || ""; } catch(e) {}
+    if (!dragonName) {
+        dragonName = dragonType.charAt(0).toUpperCase() + dragonType.slice(1) + " Dragon";
+    }
+    console.println("OotD-GD: Captured dragon name before upgrade: " + dragonName);
+
     ootdSetDragonHP(prefix);
     if (totalLevel >= 15 && stage === "wyrmling") {
         var compFunc = ootdGetCompanionFunctions();
@@ -318,9 +360,10 @@ var ootdUpdateDragonOnLevelUp = function() {
         try { ootdRemoveProfFromSaves(prefix); compFunc.remove(dragonType + " dragon wyrmling"); } catch(e) {
             console.println("OotD-GD Warning: Error removing wyrmling: " + e);
         }
-        var newPrefix = false;
-        try { newPrefix = compFunc.add(youngKey); } catch(e) {
-            console.println("OotD-GD Error: Could not add Young Dragon: " + e);
+        try {
+            newPrefix = compFunc.add(youngKey);
+        } catch(e) {
+            console.println("OotD-GD Error: Could not add Young Dragon companion: " + e);
         }
         if (!newPrefix) {
             app.alert({
@@ -332,9 +375,31 @@ var ootdUpdateDragonOnLevelUp = function() {
             });
             return;
         }
-        try { if (dragonName && typeof Value === "function") Value(newPrefix + "Comp.Use.Nickname", dragonName); } catch(e) {}
+        try {
+            if (dragonName && typeof Value === "function") {
+                Value(newPrefix + "Comp.Use.Nickname", dragonName);
+                Value(newPrefix + "Comp.Use.Name", dragonName);
+            }
+        } catch(e) {
+            console.println("OotD-GD Warning: Could not restore dragon name after upgrade: " + e);
+        }
+        try {
+            var escapedName = dragonName.replace(/'/g, "\\'");
+            app.setTimeOut(
+                "try { " +
+                "Value('" + newPrefix + "Comp.Use.Nickname', '" + escapedName + "'); " +
+                "Value('" + newPrefix + "Comp.Use.Name', '" + escapedName + "'); " +
+                "console.println('OotD-GD: Delayed name restore fired for " + escapedName + "'); " +
+                "} catch(e) { console.println('OotD-GD Warning: Delayed name restore failed: ' + e); }",
+                1000
+            );
+        } catch(e) {
+            console.println("OotD-GD Warning: Could not schedule delayed name restore: " + e);
+        }
+
         ootdSetDragonHP(newPrefix);
         ootdApplyProfToSaves(newPrefix);
+        console.println("OotD-GD: Writing notes to prefix: " + newPrefix);
         ootdWriteDragonNotes(newPrefix, dragonName, dragonType, "young");
         console.println("OotD-GD: Upgraded " + dragonName + " to Young Dragon at level " + totalLevel);
     } else {
@@ -426,5 +491,5 @@ if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragon
     console.println("OotD-GD Error: Crown of the Dragonlords not found. Load OdysseyOfTheDragonlords_v13.js first.");
 }
 
-console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.2.0).");
+console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.3.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");
