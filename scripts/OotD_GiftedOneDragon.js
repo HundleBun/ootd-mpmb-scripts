@@ -12,6 +12,17 @@
     Sheet:      v13.2.0+
     Load order: After both scripts above.
 
+    CHANGELOG v1.5.0:
+    - Name field: write to Comp.Use.CreatureName (confirmed writable).
+      Removed Comp.Use.Nickname, Comp.Use.Name, and app.setTimeOut
+      deferred writes — field confirmed via diagnostic, no delay needed.
+    - Name persistence: persist dragonName and dragonType to CurrentVars
+      as redundant backup. Name capture on upgrade reads CreatureName
+      first, CurrentVars as fallback.
+    - Notes field: write to Comp.Use.Notes (confirmed writable via
+      diagnostic). Fallback to Comp.Use.Features if Notes write fails.
+    - Removed: all diagnostic code.
+
     CHANGELOG v1.4.0:
     - Notes field: all writes now target Comp.Use.Traits (correct MPMB
       companion field) instead of Comp.Use.Notes (non-existent field).
@@ -65,6 +76,8 @@ SourceList["OotD-GD"] = {
 var OOTD_GD_NOTES_HEADER  = "=== DRAGON COMPANION (GIFTED ONE) ===";
 var OOTD_GD_NOTES_FOOTER  = "=== END DRAGON COMPANION NOTES ===";
 var OOTD_GD_LEVEL_VAR_KEY = "ootdGD_lastLevel";
+var OOTD_GD_NAME_VAR_KEY  = "ootdGD_dragonName";
+var OOTD_GD_TYPE_VAR_KEY  = "ootdGD_dragonType";
 
 var OOTD_GD_DRAGON_TYPES = {
     "Brass"  : { wyrmling : "brass dragon wyrmling",  young : "young brass dragon"  },
@@ -200,7 +213,7 @@ var ootdWriteDragonNotes = function(prefix, dragonName, dragonType, stage) {
     var totalLevel = (typeof classes !== "undefined" && classes.totallevel) ? classes.totallevel : 1;
 
     try {
-        var existingContent = What(prefix + "Comp.Use.Traits") || "";
+        var existingContent = What(prefix + "Comp.Use.Notes") || "";
 
         // Strip any previously written script section to avoid duplication
         var headerIdx = existingContent.indexOf(OOTD_GD_NOTES_HEADER);
@@ -232,8 +245,18 @@ var ootdWriteDragonNotes = function(prefix, dragonName, dragonType, stage) {
             newContent += "\n\n--- Player Notes ---\n" + playerNotes;
         }
 
-        Value(prefix + "Comp.Use.Traits", newContent);
-        console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Traits");
+        try {
+            Value(prefix + "Comp.Use.Notes", newContent);
+            console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Notes");
+        } catch(e) {
+            console.println("OotD-GD Warning: Comp.Use.Notes write failed, falling back to Comp.Use.Features: " + e);
+            try {
+                Value(prefix + "Comp.Use.Features", newContent);
+                console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Features (fallback)");
+            } catch(e2) {
+                console.println("OotD-GD Error: Both notes field writes failed: " + e2);
+            }
+        }
     } catch(e) {
         console.println("OotD-GD Warning: Could not write dragon notes: " + e);
     }
@@ -309,30 +332,20 @@ var ootdBondDragon = function() {
         });
         return;
     }
-    // Set companion name — write to both Nickname and Name fields
-    // to account for MPMB companion page field naming inconsistency.
-    // Also attempt a delayed write in case the page hasn't fully
-    // initialized by the time the initial write fires.
+    // Write dragon name to CreatureName field (confirmed writable via diagnostic).
+    // Also persist to CurrentVars as a redundant backup across page operations.
     try {
-        if (typeof Value === "function") {
-            Value(prefix + "Comp.Use.Nickname", dragonName);
-            Value(prefix + "Comp.Use.Name", dragonName);
+        Value(prefix + "Comp.Use.CreatureName", dragonName);
+        console.println("OotD-GD: Wrote creature name: " + dragonName);
+    } catch(e) {
+        console.println("OotD-GD Warning: Comp.Use.CreatureName write failed, name stored in CurrentVars only: " + e);
+    }
+    try {
+        if (typeof CurrentVars !== "undefined") {
+            CurrentVars[OOTD_GD_NAME_VAR_KEY] = dragonName;
+            CurrentVars[OOTD_GD_TYPE_VAR_KEY] = dragonType;
         }
-    } catch(e) {
-        console.println("OotD-GD Warning: Could not set dragon name (initial): " + e);
-    }
-    try {
-        app.setTimeOut(
-            "try { " +
-            "Value('" + prefix + "Comp.Use.Nickname', '" + dragonName.replace(/'/g, "\\'") + "'); " +
-            "Value('" + prefix + "Comp.Use.Name', '" + dragonName.replace(/'/g, "\\'") + "'); " +
-            "console.println('OotD-GD: Delayed name write fired for " + dragonName.replace(/'/g, "\\'") + "'); " +
-            "} catch(e) { console.println('OotD-GD Warning: Delayed name write failed: ' + e); }",
-            1000
-        );
-    } catch(e) {
-        console.println("OotD-GD Warning: Could not schedule delayed name write: " + e);
-    }
+    } catch(e) {}
     ootdSetDragonHP(prefix);
     ootdApplyProfToSaves(prefix);
     ootdWriteDragonNotes(prefix, dragonName, dragonType, "wyrmling");
@@ -343,8 +356,9 @@ var ootdBondDragon = function() {
                 "Type: " + typeKey + " Wyrmling\n" +
                 "HP: " + ootdCalcDragonHP() + " (40 + 2 x level " + currentLevel + ")\n" +
                 "Saves: +Prof bonus applied to all six saving throws\n\n" +
-                "Please review the companion page and verify the stat block.\n" +
-                "Rules reminders are in the companion's Notes section.",
+                "Name '" + dragonName + "' written to companion page.\n\n" +
+                "Please review the companion page to verify the stat block populated correctly.\n" +
+                "Rules reminders have been written to the companion's Notes section.",
         cTitle : "Dragon Bonded Successfully", nIcon : 3
     });
     console.println("OotD-GD: Bonded " + dragonName + " (" + wyrmlingKey + ") at level " + currentLevel);
@@ -363,14 +377,17 @@ var ootdUpdateDragonOnLevelUp = function() {
     var newPrefix  = false; // hoisted to function scope — prevents scoping failures in Acrobat JS engine
 
     // Capture name before any remove/add operations.
-    // Try Nickname first, then Name field as fallback.
+    // Read from CreatureName field, fall back to CurrentVars if empty.
     var dragonName = "";
-    try { dragonName = What(prefix + "Comp.Use.Nickname") || ""; } catch(e) {}
-    try { if (!dragonName) dragonName = What(prefix + "Comp.Use.Name") || ""; } catch(e) {}
+    try { dragonName = What(prefix + "Comp.Use.CreatureName") || ""; } catch(e) {}
+    try {
+        if (!dragonName && typeof CurrentVars !== "undefined" && CurrentVars[OOTD_GD_NAME_VAR_KEY])
+            dragonName = CurrentVars[OOTD_GD_NAME_VAR_KEY];
+    } catch(e) {}
     if (!dragonName) {
         dragonName = dragonType.charAt(0).toUpperCase() + dragonType.slice(1) + " Dragon";
     }
-    console.println("OotD-GD: Captured dragon name before upgrade: " + dragonName);
+    console.println("OotD-GD: Captured dragon name: " + dragonName);
 
     ootdSetDragonHP(prefix);
     if (totalLevel >= 15 && stage === "wyrmling") {
@@ -409,25 +426,10 @@ var ootdUpdateDragonOnLevelUp = function() {
             return;
         }
         try {
-            if (dragonName && typeof Value === "function") {
-                Value(newPrefix + "Comp.Use.Nickname", dragonName);
-                Value(newPrefix + "Comp.Use.Name", dragonName);
-            }
+            Value(newPrefix + "Comp.Use.CreatureName", dragonName);
+            console.println("OotD-GD: Wrote creature name: " + dragonName);
         } catch(e) {
-            console.println("OotD-GD Warning: Could not restore dragon name after upgrade: " + e);
-        }
-        try {
-            var escapedName = dragonName.replace(/'/g, "\\'");
-            app.setTimeOut(
-                "try { " +
-                "Value('" + newPrefix + "Comp.Use.Nickname', '" + escapedName + "'); " +
-                "Value('" + newPrefix + "Comp.Use.Name', '" + escapedName + "'); " +
-                "console.println('OotD-GD: Delayed name restore fired for " + escapedName + "'); " +
-                "} catch(e) { console.println('OotD-GD Warning: Delayed name restore failed: ' + e); }",
-                1000
-            );
-        } catch(e) {
-            console.println("OotD-GD Warning: Could not schedule delayed name restore: " + e);
+            console.println("OotD-GD Warning: Comp.Use.CreatureName write failed, name stored in CurrentVars only: " + e);
         }
 
         ootdSetDragonHP(newPrefix);
@@ -521,5 +523,6 @@ if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragon
     console.println("OotD-GD Error: Crown of the Dragonlords not found. Load OdysseyOfTheDragonlords_v13.js first.");
 }
 
-console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.4.0).");
+
+console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.5.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");

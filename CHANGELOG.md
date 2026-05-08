@@ -6,7 +6,13 @@ All notable changes to these scripts are documented here.
 
 ## OotD_GiftedOneDragon.js
 
-### v1.4.0 — Current
+### v1.5.0 — Current
+- **Name field fix**: Write to `Comp.Use.CreatureName` (confirmed writable via diagnostic). Removed `Comp.Use.Nickname`, `Comp.Use.Name`, and `app.setTimeOut` deferred writes — field confirmed, no delay needed.
+- **Name persistence**: Dragon name and type persisted to `CurrentVars` as redundant backup. Name capture on upgrade reads `Comp.Use.CreatureName` first, `CurrentVars` as fallback.
+- **Notes field fix**: Write to `Comp.Use.Notes` (confirmed writable via diagnostic), with automatic fallback to `Comp.Use.Features` if the write fails.
+- **Removed**: All diagnostic code.
+
+### v1.4.0
 - **Notes field fix**: All writes now target `Comp.Use.Traits` — the correct MPMB v13 companion field. Previous writes to `Comp.Use.Notes` were silently discarded.
 - **Notes append**: Script section now appends below existing MPMB-populated trait content (breath weapon description, abilities, etc.) rather than overwriting it. On subsequent writes, only the script section is replaced to prevent duplication.
 - **Unbreakable Bond**: Removed `Value()` calls for `Limited Feature X Max` and `Limited Feature X Recovery` — MPMB v13 calculates these dynamically and does not expose them as writable PDF fields. Feature name write only.
