@@ -4,9 +4,16 @@ All notable changes to these scripts are documented here.
 
 ---
 
-## OotD_Diagnostic.js
+## OotD_ZDiagnostic.js
 
-### v1.0.0 — Current
+### v1.1.0 — Current
+- **Renamed**: `OotD_Diagnostic.js` → `OotD_ZDiagnostic.js`. Z prefix ensures alphabetical sort places it last in MPMB's script loader (load order is alphabetical with no manual reordering).
+- **Cross-script scope fix**: Health check no longer calls `ootdFindDragonCompanion()`, `ootdCalcDragonHP()`, or reads `OOTD_GD_NOTES_HEADER` — all are `var`-scoped to GiftedOneDragon.js and unavailable here due to Acrobat 2026 scope isolation. Replaced with inline logic using MPMB globals (`ClassList`, `MagicItemsList`, `What`). GiftedOneDragon load detection now uses Crown `calcChanges` presence rather than a function typeof check.
+- **String() conversion**: All `What()` return values wrapped in `String()` before calling string methods — numeric PDF fields return numbers, not strings, causing `.trim()` TypeError.
+- **CONFIG block**: Layer 2 utilities now run via config variables at load time (`OOTD_DIAG_COMPANION`, `OOTD_DIAG_SCAN`, `OOTD_DIAG_LIMITED`, `OOTD_DIAG_CVARS`). Acrobat 2026 scope isolation prevents calling `var`-declared functions from the JS console.
+- **Console instructions**: Ctrl+Enter tip added to output. Console clarified as read-only output.
+
+### v1.0.0
 - Initial release.
 - **Layer 1 — OotD Script Health** (auto-run on load): checks AmazonianFix patch, Crown extensions, EpicPaths feats, Dirge spell, dragon bonded state, dragon HP, dragon name, dragon notes, Unbreakable Bond slot, CurrentVars state. PASS/WARN/FAIL/N/A output labeled `[HEALTH]`.
 - **Layer 2 — General Diagnostic Utilities** (console-callable, not OotD-specific): `ootdDiagHelp()`, `ootdDiagScanFields(pattern)`, `ootdDiagCompanion(creatureName)`, `ootdDiagLimitedFeatures()`, `ootdDiagCurrentVars()`. Output labeled `[UTIL]`.

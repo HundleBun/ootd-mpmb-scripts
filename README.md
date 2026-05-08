@@ -20,7 +20,7 @@ Three scripts that work together to add epic paths, companion fixes, and the Gif
 | `OotD_AmazonianFix.js` | Patches a TypeError in companion functions affecting the Amazonian Conclave ranger subclass |
 | `OotD_GiftedOneDragon.js` | Class-agnostic dragon companion system for the Gifted One and Vanished One epic path |
 | `OotD_EpicPaths.js` | Adds all 8 OotD epic paths and their divine blessings as selectable feats |
-| `OotD_Diagnostic.js` | Optional troubleshooting script — load only when investigating issues |
+| `OotD_ZDiagnostic.js` | Optional troubleshooting script — load only when investigating issues |
 
 ---
 
@@ -33,7 +33,7 @@ Scripts must be loaded in this exact order. Loading out of order will cause erro
 2. OotD_AmazonianFix.js
 3. OotD_GiftedOneDragon.js
 4. OotD_EpicPaths.js                 <-- independent of GiftedOne; load after AmazonianFix
-5. OotD_Diagnostic.js                <-- OPTIONAL: load only when troubleshooting
+5. OotD_ZDiagnostic.js                <-- OPTIONAL: load only when troubleshooting
 ```
 
 `OotD_EpicPaths.js` and `OotD_GiftedOneDragon.js` can be swapped relative to each other, but both must come after `OotD_AmazonianFix.js`, which must come after the base OotD script.
