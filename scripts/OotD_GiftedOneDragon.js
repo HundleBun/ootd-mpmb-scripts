@@ -12,6 +12,16 @@
     Sheet:      v13.2.0+
     Load order: After both scripts above.
 
+    CHANGELOG v1.4.0:
+    - Notes field: all writes now target Comp.Use.Traits (correct MPMB
+      companion field) instead of Comp.Use.Notes (non-existent field).
+    - Notes write: appends script section below existing MPMB trait
+      content instead of overwriting it. Strips and rewrites only the
+      script section on subsequent writes to avoid duplication.
+    - Unbreakable Bond: removed Value() writes for Max and Recovery —
+      MPMB v13 calculates these dynamically and does not expose them
+      as writable PDF fields. Name write only.
+
     CHANGELOG v1.3.0:
     - Nickname fix: write to both Comp.Use.Nickname and Comp.Use.Name
       on initial bond and on upgrade, with a 1-second app.setTimeOut
@@ -188,19 +198,42 @@ var ootdBuildDragonNotes = function(dragonName, dragonType, stage, totalLevel) {
 var ootdWriteDragonNotes = function(prefix, dragonName, dragonType, stage) {
     if (!prefix || typeof What !== "function" || typeof Value !== "function") return;
     var totalLevel = (typeof classes !== "undefined" && classes.totallevel) ? classes.totallevel : 1;
+
     try {
-        var existingNotes = What(prefix + "Comp.Use.Notes") || "";
-        var headerIdx = existingNotes.indexOf(OOTD_GD_NOTES_HEADER);
-        var footerIdx = existingNotes.indexOf(OOTD_GD_NOTES_FOOTER);
+        var existingContent = What(prefix + "Comp.Use.Traits") || "";
+
+        // Strip any previously written script section to avoid duplication
+        var headerIdx = existingContent.indexOf(OOTD_GD_NOTES_HEADER);
+        var footerIdx = existingContent.indexOf(OOTD_GD_NOTES_FOOTER);
+        var mpmgContent = "";
         var playerNotes = "";
+
         if (headerIdx !== -1 && footerIdx !== -1) {
-            playerNotes = existingNotes.substring(footerIdx + OOTD_GD_NOTES_FOOTER.length).trim();
-        } else if (existingNotes.trim().length > 0) {
-            playerNotes = existingNotes.trim();
+            // Script section exists — preserve MPMB content before it
+            // and player notes after it
+            mpmgContent = existingContent.substring(0, headerIdx).trimRight();
+            playerNotes = existingContent.substring(
+                footerIdx + OOTD_GD_NOTES_FOOTER.length
+            ).trim();
+        } else {
+            // No script section yet — everything in the field is MPMB content
+            mpmgContent = existingContent.trimRight();
         }
-        var newNotes = ootdBuildDragonNotes(dragonName, dragonType, stage, totalLevel);
-        if (playerNotes.length > 0) newNotes += "\n\n--- Player Notes ---\n" + playerNotes;
-        Value(prefix + "Comp.Use.Notes", newNotes);
+
+        // Build new content: MPMB traits first, then script section, then player notes
+        var scriptSection = ootdBuildDragonNotes(dragonName, dragonType, stage, totalLevel);
+        var newContent = "";
+        if (mpmgContent.length > 0) {
+            newContent = mpmgContent + "\n\n" + scriptSection;
+        } else {
+            newContent = scriptSection;
+        }
+        if (playerNotes.length > 0) {
+            newContent += "\n\n--- Player Notes ---\n" + playerNotes;
+        }
+
+        Value(prefix + "Comp.Use.Traits", newContent);
+        console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Traits");
     } catch(e) {
         console.println("OotD-GD Warning: Could not write dragon notes: " + e);
     }
@@ -418,10 +451,7 @@ var ootdUpdateDragonOnLevelUp = function() {
                     var sn = What("Limited Feature " + slot);
                     if (!sn || sn.trim() === "") {
                         Value("Limited Feature " + slot, bondFeatureName);
-                        Value("Limited Feature " + slot + " Used", 0);
-                        Value("Limited Feature " + slot + " Max", 1);
-                        Value("Limited Feature " + slot + " Recovery", "long rest");
-                        console.println("OotD-GD: Added Unbreakable Bond tracker to slot " + slot);
+                        console.println("OotD-GD: Added Unbreakable Bond tracker to Limited Feature " + slot);
                         break;
                     }
                 }
@@ -491,5 +521,5 @@ if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragon
     console.println("OotD-GD Error: Crown of the Dragonlords not found. Load OdysseyOfTheDragonlords_v13.js first.");
 }
 
-console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.3.0).");
+console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.4.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");

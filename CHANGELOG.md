@@ -6,7 +6,12 @@ All notable changes to these scripts are documented here.
 
 ## OotD_GiftedOneDragon.js
 
-### v1.3.0 — Current
+### v1.4.0 — Current
+- **Notes field fix**: All writes now target `Comp.Use.Traits` — the correct MPMB v13 companion field. Previous writes to `Comp.Use.Notes` were silently discarded.
+- **Notes append**: Script section now appends below existing MPMB-populated trait content (breath weapon description, abilities, etc.) rather than overwriting it. On subsequent writes, only the script section is replaced to prevent duplication.
+- **Unbreakable Bond**: Removed `Value()` calls for `Limited Feature X Max` and `Limited Feature X Recovery` — MPMB v13 calculates these dynamically and does not expose them as writable PDF fields. Feature name write only.
+
+### v1.3.0
 - **Nickname fix (initial bond)**: Write to both `Comp.Use.Nickname` and `Comp.Use.Name` fields immediately on bond, plus a 1-second `app.setTimeOut` deferred write to handle companion page initialization delay.
 - **Nickname fix (upgrade)**: Same dual-field write + deferred write applied when carrying the name over to the Young Dragon companion page.
 - **Upgrade scoping fix**: `newPrefix` hoisted to function scope in `ootdUpdateDragonOnLevelUp` to prevent Acrobat JS engine scoping failures.
