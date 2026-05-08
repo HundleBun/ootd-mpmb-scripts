@@ -12,16 +12,15 @@
     Sheet:      v13.2.0+
     Load order: After both scripts above.
 
-    CHANGELOG v1.5.0:
-    - Name field: write to Comp.Use.CreatureName (confirmed writable).
-      Removed Comp.Use.Nickname, Comp.Use.Name, and app.setTimeOut
-      deferred writes — field confirmed via diagnostic, no delay needed.
-    - Name persistence: persist dragonName and dragonType to CurrentVars
-      as redundant backup. Name capture on upgrade reads CreatureName
-      first, CurrentVars as fallback.
-    - Notes field: write to Comp.Use.Notes (confirmed writable via
-      diagnostic). Fallback to Comp.Use.Features if Notes write fails.
-    - Removed: all diagnostic code.
+    CHANGELOG v1.6.0:
+    - Name field: write to Comp.Desc.Name (confirmed real PDF field via
+      field enumeration diagnostic). Removed Comp.Use.CreatureName —
+      not a real PDF field; writes were silently discarded.
+    - Notes field: write to Cnote.Left (the actual Notes panel on the
+      companion page, labeled by Text.Header.NotesComp). Removed
+      Comp.Use.Notes — not a real PDF field; was also silently discarded.
+      Fallback to Comp.Use.Traits if Cnote.Left write fails.
+    - Removed: field enumeration diagnostic block.
 
     Full version history: see CHANGELOG.md in the repo root.
 */
@@ -178,7 +177,7 @@ var ootdWriteDragonNotes = function(prefix, dragonName, dragonType, stage) {
     var totalLevel = (typeof classes !== "undefined" && classes.totallevel) ? classes.totallevel : 1;
 
     try {
-        var existingContent = What(prefix + "Comp.Use.Notes") || "";
+        var existingContent = What(prefix + "Cnote.Left") || "";
 
         // Strip any previously written script section to avoid duplication
         var headerIdx = existingContent.indexOf(OOTD_GD_NOTES_HEADER);
@@ -211,13 +210,13 @@ var ootdWriteDragonNotes = function(prefix, dragonName, dragonType, stage) {
         }
 
         try {
-            Value(prefix + "Comp.Use.Notes", newContent);
-            console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Notes");
+            Value(prefix + "Cnote.Left", newContent);
+            console.println("OotD-GD: Wrote dragon notes to " + prefix + "Cnote.Left");
         } catch(e) {
-            console.println("OotD-GD Warning: Comp.Use.Notes write failed, falling back to Comp.Use.Features: " + e);
+            console.println("OotD-GD Warning: Cnote.Left write failed, falling back to Comp.Use.Traits: " + e);
             try {
-                Value(prefix + "Comp.Use.Features", newContent);
-                console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Features (fallback)");
+                Value(prefix + "Comp.Use.Traits", newContent);
+                console.println("OotD-GD: Wrote dragon notes to " + prefix + "Comp.Use.Traits (fallback)");
             } catch(e2) {
                 console.println("OotD-GD Error: Both notes field writes failed: " + e2);
             }
@@ -297,13 +296,13 @@ var ootdBondDragon = function() {
         });
         return;
     }
-    // Write dragon name to CreatureName field (confirmed writable via diagnostic).
+    // Write dragon name to Comp.Desc.Name (confirmed real PDF field via enumeration).
     // Also persist to CurrentVars as a redundant backup across page operations.
     try {
-        Value(prefix + "Comp.Use.CreatureName", dragonName);
-        console.println("OotD-GD: Wrote creature name: " + dragonName);
+        Value(prefix + "Comp.Desc.Name", dragonName);
+        console.println("OotD-GD: Wrote dragon name to Comp.Desc.Name: " + dragonName);
     } catch(e) {
-        console.println("OotD-GD Warning: Comp.Use.CreatureName write failed, name stored in CurrentVars only: " + e);
+        console.println("OotD-GD Warning: Comp.Desc.Name write failed, name stored in CurrentVars only: " + e);
     }
     try {
         if (typeof CurrentVars !== "undefined") {
@@ -344,7 +343,7 @@ var ootdUpdateDragonOnLevelUp = function() {
     // Capture name before any remove/add operations.
     // Read from CreatureName field, fall back to CurrentVars if empty.
     var dragonName = "";
-    try { dragonName = What(prefix + "Comp.Use.CreatureName") || ""; } catch(e) {}
+    try { dragonName = What(prefix + "Comp.Desc.Name") || ""; } catch(e) {}
     try {
         if (!dragonName && typeof CurrentVars !== "undefined" && CurrentVars[OOTD_GD_NAME_VAR_KEY])
             dragonName = CurrentVars[OOTD_GD_NAME_VAR_KEY];
@@ -391,10 +390,10 @@ var ootdUpdateDragonOnLevelUp = function() {
             return;
         }
         try {
-            Value(newPrefix + "Comp.Use.CreatureName", dragonName);
-            console.println("OotD-GD: Wrote creature name: " + dragonName);
+            Value(newPrefix + "Comp.Desc.Name", dragonName);
+            console.println("OotD-GD: Wrote dragon name to Comp.Desc.Name: " + dragonName);
         } catch(e) {
-            console.println("OotD-GD Warning: Comp.Use.CreatureName write failed, name stored in CurrentVars only: " + e);
+            console.println("OotD-GD Warning: Comp.Desc.Name write failed, name stored in CurrentVars only: " + e);
         }
 
         ootdSetDragonHP(newPrefix);
@@ -488,62 +487,5 @@ if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragon
     console.println("OotD-GD Error: Crown of the Dragonlords not found. Load OdysseyOfTheDragonlords_v13.js first.");
 }
 
-
-// ── DIAGNOSTIC — write probe (remove after confirmed) ─────────
-(function() {
-    var diagCompFunc = ootdGetCompanionFunctions();
-    if (diagCompFunc) {
-        var diagFound = diagCompFunc.find("young bronze dragon");
-        if (diagFound && diagFound.length > 0) {
-            var diagP = diagFound[0];
-            console.println("DIAG prefix: " + diagP);
-            var fieldMap = [
-                ["Comp.Use.Nickname",          "N1"],
-                ["Comp.Use.Name",              "N2"],
-                ["Comp.Use.PlayerName",        "N3"],
-                ["Comp.Use.CharacterName",     "N4"],
-                ["Comp.Use.CreatureName",      "N5"],
-                ["Comp.Use.Creature",          "N6"],
-                ["Comp.Use.Race",              "N7"],
-                ["Comp.Use.Type",              "N8"],
-                ["Comp.Use.Notes",             "N9"],
-                ["Comp.Use.ExtraInfo",         "A1"],
-                ["Comp.Use.AdditionalInfo",    "A2"],
-                ["Comp.Use.Background",        "A3"],
-                ["Comp.Use.Extra",             "A4"],
-                ["Comp.Use.OtherInfo",         "A5"],
-                ["Comp.Use.Features",          "A6"],
-                ["Comp.Use.FeatDesc",          "A7"],
-                ["Comp.Use.Proficiencies",     "A8"],
-                ["Comp.Use.Languages",         "A9"],
-                ["Comp.Use.Appearance",        "B1"],
-                ["Comp.Use.Backstory",         "B2"],
-                ["Comp.Use.Bonds",             "B3"],
-                ["Comp.Use.Flaws",             "B4"],
-                ["Comp.Use.Ideals",            "B5"],
-                ["Comp.Use.PersonalityTraits", "B6"],
-                ["Comp.Use.Traits",            "B7"],
-                ["Comp.Use.SensesDef",         "B8"],
-                ["Comp.Use.Attacks.Extra",     "B9"]
-            ];
-            for (var i = 0; i < fieldMap.length; i++) {
-                var fieldName = fieldMap[i][0];
-                var code      = fieldMap[i][1];
-                try {
-                    Value(diagP + fieldName, code);
-                    console.println("DIAG WRITE OK  [" + code + "] → " + fieldName);
-                } catch(e) {
-                    console.println("DIAG WRITE ERR [" + code + "] → " + fieldName + ": " + e);
-                }
-            }
-        } else {
-            console.println("DIAG young bronze dragon not found");
-        }
-    } else {
-        console.println("DIAG companion functions unavailable");
-    }
-})();
-// ── END DIAGNOSTIC ────────────────────────────────────────────
-
-console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.5.0).");
+console.println("OotD-GD: Gifted One Dragon Companion System loaded (v1.6.0).");
 console.println("OotD-GD: Attune to the Crown of the Dragonlords to begin bonding.");

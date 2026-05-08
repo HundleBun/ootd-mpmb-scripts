@@ -6,7 +6,12 @@ All notable changes to these scripts are documented here.
 
 ## OotD_GiftedOneDragon.js
 
-### v1.5.0 — Current
+### v1.6.0 — Current
+- **Name field fix**: Write to `Comp.Desc.Name` (confirmed real PDF field via field enumeration diagnostic). Removed `Comp.Use.CreatureName` — not present in the PDF's 332 companion fields; writes were silently discarded.
+- **Notes field fix**: Write to `Cnote.Left` (the actual Notes panel, labeled `Text.Header.NotesComp = 'Notes'`). Removed `Comp.Use.Notes` — also not a real PDF field. Fallback to `Comp.Use.Traits` if `Cnote.Left` write fails.
+- **Removed**: Field enumeration diagnostic block.
+
+### v1.5.0 — superseded by v1.6.0 (field names were incorrect; see above)
 - **Name field fix**: Write to `Comp.Use.CreatureName` (confirmed writable via diagnostic). Removed `Comp.Use.Nickname`, `Comp.Use.Name`, and `app.setTimeOut` deferred writes — field confirmed, no delay needed.
 - **Name persistence**: Dragon name and type persisted to `CurrentVars` as redundant backup. Name capture on upgrade reads `Comp.Use.CreatureName` first, `CurrentVars` as fallback.
 - **Notes field fix**: Write to `Comp.Use.Notes` (confirmed writable via diagnostic), with automatic fallback to `Comp.Use.Features` if the write fails.
