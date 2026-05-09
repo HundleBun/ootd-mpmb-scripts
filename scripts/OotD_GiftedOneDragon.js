@@ -90,11 +90,9 @@ var ootdFindDragonCompanion = function() {
     var allTypes = ["brass", "bronze", "copper", "silver"];
     var stages   = ["wyrmling", "young"];
     for (var t = 0; t < allTypes.length; t++) {
+        var typeKey = allTypes[t].charAt(0).toUpperCase() + allTypes[t].slice(1);
         for (var s = 0; s < stages.length; s++) {
-            var searchTerm = stages[s] === "wyrmling"
-                ? allTypes[t] + " dragon wyrmling"
-                : "young " + allTypes[t] + " dragon";
-            var found = compFunc.find(searchTerm);
+            var found = compFunc.find(OOTD_GD_DRAGON_TYPES[typeKey][stages[s]]);
             if (found && found.length > 0) {
                 return { prefix : found[0], type : allTypes[t], stage : stages[s] };
             }
@@ -189,26 +187,26 @@ var ootdWriteDragonNotes = function(prefix, dragonName, dragonType, stage) {
         // Strip any previously written script section to avoid duplication
         var headerIdx = existingContent.indexOf(OOTD_GD_NOTES_HEADER);
         var footerIdx = existingContent.indexOf(OOTD_GD_NOTES_FOOTER);
-        var mpmgContent = "";
+        var mpmbContent = "";
         var playerNotes = "";
 
         if (headerIdx !== -1 && footerIdx !== -1) {
             // Script section exists — preserve MPMB content before it
             // and player notes after it
-            mpmgContent = existingContent.substring(0, headerIdx).trimRight();
+            mpmbContent = existingContent.substring(0, headerIdx).trimRight();
             playerNotes = existingContent.substring(
                 footerIdx + OOTD_GD_NOTES_FOOTER.length
             ).trim();
         } else {
             // No script section yet — everything in the field is MPMB content
-            mpmgContent = existingContent.trimRight();
+            mpmbContent = existingContent.trimRight();
         }
 
         // Build new content: MPMB traits first, then script section, then player notes
         var scriptSection = ootdBuildDragonNotes(dragonName, dragonType, stage, totalLevel);
         var newContent = "";
-        if (mpmgContent.length > 0) {
-            newContent = mpmgContent + "\n\n" + scriptSection;
+        if (mpmbContent.length > 0) {
+            newContent = mpmbContent + "\n\n" + scriptSection;
         } else {
             newContent = scriptSection;
         }
@@ -263,10 +261,15 @@ var ootdBondDragon = function() {
     var dragonType = "bronze";
     if (typeChoice !== null) {
         var trimmed = typeChoice.trim();
-        if      (trimmed === "1" || trimmed.toLowerCase() === "brass")   dragonType = "brass";
-        else if (trimmed === "2" || trimmed.toLowerCase() === "bronze")  dragonType = "bronze";
-        else if (trimmed === "3" || trimmed.toLowerCase() === "copper")  dragonType = "copper";
-        else if (trimmed === "4" || trimmed.toLowerCase() === "silver")  dragonType = "silver";
+        var types = ["brass", "bronze", "copper", "silver"];
+        var idx = parseInt(trimmed) - 1;
+        if (idx >= 0 && idx <= 3) {
+            dragonType = types[idx];
+        } else {
+            for (var i = 0; i < types.length; i++) {
+                if (trimmed.toLowerCase() === types[i]) { dragonType = types[i]; break; }
+            }
+        }
     } else {
         console.println("OotD-GD: Bond Dragon cancelled by user."); return;
     }
@@ -350,7 +353,7 @@ var ootdUpdateDragonOnLevelUp = function() {
     // Capture name before any remove/add operations.
     // Read from CreatureName field, fall back to CurrentVars if empty.
     var dragonName = "";
-    try { dragonName = What(prefix + "Comp.Desc.Name") || ""; } catch(e) {}
+    try { dragonName = String(What(prefix + "Comp.Desc.Name") || ""); } catch(e) {}
     try {
         if (!dragonName && typeof CurrentVars !== "undefined" && CurrentVars[OOTD_GD_NAME_VAR_KEY])
             dragonName = CurrentVars[OOTD_GD_NAME_VAR_KEY];
@@ -452,7 +455,7 @@ var ootdUpdateDragonOnLevelUp = function() {
 
 if (typeof MagicItemsList !== "undefined" && MagicItemsList["crown of the dragonlords"]) {
     var crownEntry = MagicItemsList["crown of the dragonlords"];
-    var crownEval = function() { ootdBondDragon(); };
+    var crownEval = ootdBondDragon;
     var crownRemoveEval = function() {
         var dragon = ootdFindDragonCompanion();
         if (dragon) console.println("OotD-GD: Crown removed. Bond is permanent; no action taken.");
