@@ -6,11 +6,11 @@
                 the OotD Player's Guide.
 
                 Level 5:  Bull Form companion page added automatically.
-                          "Bull Form (Cursed Transformation)" added to Limited
-                          Features as a 1/long rest tracker.
                 Level 9:  Bull Form removed; Dire Bull Form companion added.
-                          Limited feature updated to Dire Bull Form.
-                          Relentless (1/day) noted in companion notes.
+                          Relentless (1/day) written to companion Traits section.
+
+                The Cursed Transformation limited feature (1/long rest) is
+                managed by the base OotD script and is not tracked here.
 
                 Companion notes are written to Cnote.Left on the companion page
                 and refreshed on every level-up, including the exact PHB stats
@@ -40,9 +40,29 @@
     - Bull companion page added at level 5 with PHB stat block.
     - Dire Bull companion replaces Bull at level 9 with updated stat block.
     - Companion notes written to Cnote.Left; refreshed automatically on level-up.
-    - Transformation tracked as a limited feature (1/long rest).
     - Alert dialogs notify the player when forms are first added or upgraded.
     - Idempotent: safe to reload at any level without duplicate companions.
+
+    CHANGELOG v1.0.1:
+    - Removed "Languages --" from companion features box (removed languages property).
+    - Fixed ability scores to match OotD PHB: [18, 10, 16, 4, 10, 9].
+    - Corrected companion notes stat block to reflect PHB values.
+    - Removed Limited Feature tracking — base OotD script already tracks
+      "Cursed Transformation" as a 1/long rest limited feature.
+
+    CHANGELOG v1.1.0:
+    - Added ootdMH_findExact() and ootdMH_removeExact() using strict equality
+      on Comp.Race to prevent substring collision ("bull" matching "dire bull").
+    - All companion find/remove calls in manageForm and removeeval now use
+      exact-match functions; eliminates Dire Bull being immediately removed
+      after creation and the resulting double alert dialog.
+    - Dire Bull proficiencyBonus: 2 -> 1 (PHB does not specify to-hit for Dire
+      Bull; kept consistent with Bull at +5 to hit).
+    - Relentless (1/Day) written explicitly to Comp.Use.Traits on Dire Bull
+      companion page; duplication guard prevents repeat on reload.
+    - Relentless removed from Cnote.Left body; replaced with cross-reference
+      to the Traits section.
+    - Companion notes updated with Perception +4 explanation for both forms.
 
 */
 
@@ -504,5 +524,5 @@ MagicItemsList["cursed transformation (minotaur)"] = {
     }
 };
 
-console.println("OotD-MH: Herculean Minotaur Form Tracker loaded (v1.0.0).");
+console.println("OotD-MH: Herculean Minotaur Form Tracker loaded (v1.1.0).");
 console.println("OotD-MH: Add 'Cursed Transformation (Minotaur)' to equipment to enable auto-companion management.");
