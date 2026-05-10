@@ -83,10 +83,14 @@ CreatureList["bull (minotaur form)"] = {
     hp                : 36,
     hd                : [4, 10],      // 4d10 + 12 (CON 16, +3 ×4)
     speed             : "40 ft",
-    scores            : [18, 10, 16, 2, 14, 7],   // STR DEX CON INT WIS CHA
+    scores            : [18, 10, 16, 4, 10, 9],    // STR DEX CON INT WIS CHA (OotD PHB)
+    // Passive Perception note: PHB states 14. With WIS 10 (+0) this cannot be reached
+    // through standard 5e calculation without proficiency manipulation that would also
+    // break the attack bonus. passivePerception: 14 populates the senses text field
+    // correctly; the companion sheet's calculated PP field will show a lower value.
+    // The correct PHB value is stated in the companion notes (Cnote.Left).
     passivePerception : 14,
-    senses            : "Passive Perception 14",
-    languages         : "--",
+    senses            : "Passive Perception 14 (PHB; see companion notes)",
     challengeRating   : "1",
     proficiencyBonus  : 1,            // PHB gives +5 to hit (STR +4 + 1); set here so MPMB
                                       // calculates +4 + 1 = +5 if proficiencyBonus is respected.
@@ -124,10 +128,9 @@ CreatureList["dire bull (minotaur form)"] = {
     hp                : 46,
     hd                : [5, 10],      // 5d10 + 12 (per PHB; see HP note in header)
     speed             : "40 ft",
-    scores            : [18, 10, 16, 2, 14, 7],   // STR DEX CON INT WIS CHA
+    scores            : [18, 10, 16, 4, 10, 9],    // STR DEX CON INT WIS CHA (OotD PHB)
     passivePerception : 14,
-    senses            : "Passive Perception 14",
-    languages         : "--",
+    senses            : "Passive Perception 14 (PHB; see companion notes)",
     challengeRating   : "2",
     proficiencyBonus  : 2,
     attacksAction     : 1,
@@ -219,23 +222,23 @@ var ootdMH_buildNotes = function(formKey) {
         notes += "Form: Bull (Cursed Transformation \u2014 Level 5+)\n\n";
         notes += "STATS (OotD PHB):\n";
         notes += "AC 11  |  HP 36 (4d10+12)  |  Speed 40 ft\n";
-        notes += "STR 18 (+4)  DEX 10  CON 16 (+3)  INT 2  WIS 14 (+2)  CHA 7\n";
-        notes += "Passive Perception 14\n\n";
+        notes += "STR 18 (+4)  DEX 10  CON 16 (+3)  INT 4 (-3)  WIS 10 (+0)  CHA 9 (-1)\n";
+        notes += "Passive Perception 14 (PHB; companion sheet field calculated from WIS will differ)\n\n";
         notes += "ATTACK \u2014 Horns: +5 to hit, 1d8+4 piercing\n";
         notes += "Charge: if moved 10+ ft straight toward target before hitting:\n";
         notes += "  +1d6 piercing damage  |  DC 11 STR save or knocked prone\n\n";
         notes += "TRANSFORMATION RULES:\n";
         notes += "  Activate  : Bonus action\n";
         notes += "  Duration  : Until bonus action to revert, or until unconscious\n";
-        notes += "  Recharge  : Long rest (tracked in Limited Features)\n";
+        notes += "  Recharge  : Long rest\n";
         notes += "  Warning   : Auto-triggers on prolonged bright red exposure (DM discretion)\n\n";
         notes += "Upgrades to Dire Bull Form at character level 9.\n";
     } else {
         notes += "Form: Dire Bull (Cursed Transformation \u2014 Level 9+)\n\n";
         notes += "STATS (OotD PHB):\n";
         notes += "AC 12  |  HP 46 (5d10+12)  |  Speed 40 ft\n";
-        notes += "STR 18 (+4)  DEX 10  CON 16 (+3)  INT 2  WIS 14 (+2)  CHA 7\n";
-        notes += "Passive Perception 14\n\n";
+        notes += "STR 18 (+4)  DEX 10  CON 16 (+3)  INT 4 (-3)  WIS 10 (+0)  CHA 9 (-1)\n";
+        notes += "Passive Perception 14 (PHB; companion sheet field calculated from WIS will differ)\n\n";
         notes += "ATTACK \u2014 Horns: 2d6+4 piercing\n";
         notes += "Charge: if moved 10+ ft straight toward target before hitting:\n";
         notes += "  +1d10 piercing damage  |  DC 14 STR save or knocked prone\n\n";
@@ -244,7 +247,7 @@ var ootdMH_buildNotes = function(formKey) {
         notes += "TRANSFORMATION RULES:\n";
         notes += "  Activate  : Bonus action\n";
         notes += "  Duration  : Until bonus action to revert, or until unconscious\n";
-        notes += "  Recharge  : Long rest (tracked in Limited Features)\n";
+        notes += "  Recharge  : Long rest\n";
         notes += "  Warning   : Auto-triggers on prolonged bright red exposure (DM discretion)\n";
     }
     notes += "\n" + OOTD_MH_NOTES_FOOTER;
@@ -294,69 +297,10 @@ var ootdMH_writeNotes = function(prefix, formKey) {
     }
 };
 
-// ── LIMITED FEATURE TRACKING ──────────────────────────────────
-// The transformation recharges on a long rest and is tracked here
-// so it is visible in the Class Features column during play.
-// Both add and remove scan all 20 slots to guard against duplicates
-// and stale entries from a previous form.
-
-var OOTD_MH_LF_BULL      = "Bull Form (Cursed Transformation)";
-var OOTD_MH_LF_DIRE_BULL = "Dire Bull Form (Cursed Transformation)";
-
-var ootdMH_removeLimitedFeature = function(featureName) {
-    if (typeof What !== "function" || typeof Value !== "function") return;
-    try {
-        for (var i = 1; i <= 20; i++) {
-            if (String(What("Limited Feature " + i) || "").indexOf(featureName) !== -1) {
-                Value("Limited Feature " + i, "");
-                Value("Limited Feature Max Usages " + i, "");
-                Value("Limited Feature Recovery " + i, "");
-                console.println("OotD-MH: Removed limited feature '" + featureName +
-                                "' from slot " + i);
-                return;
-            }
-        }
-    } catch(e) {
-        console.println("OotD-MH Warning: Could not remove limited feature '" +
-                        featureName + "': " + e);
-    }
-};
-
-var ootdMH_addLimitedFeature = function(featureName) {
-    if (typeof What !== "function" || typeof Value !== "function") return;
-    try {
-        // Check whether the feature is already present; skip if so.
-        for (var i = 1; i <= 20; i++) {
-            if (String(What("Limited Feature " + i) || "").indexOf(featureName) !== -1) {
-                console.println("OotD-MH: Limited feature '" + featureName +
-                                "' already in slot " + i + ". Skipping.");
-                return;
-            }
-        }
-        // Find first empty slot.
-        for (var slot = 1; slot <= 20; slot++) {
-            if (!String(What("Limited Feature " + slot) || "").trim()) {
-                Value("Limited Feature " + slot, featureName);
-                Value("Limited Feature Max Usages " + slot, "1");
-                Value("Limited Feature Recovery " + slot, "long rest");
-                console.println("OotD-MH: Added limited feature '" + featureName +
-                                "' to slot " + slot);
-                return;
-            }
-        }
-        console.println("OotD-MH Warning: No empty limited feature slot found for '" +
-                        featureName + "'.");
-    } catch(e) {
-        console.println("OotD-MH Warning: Could not add limited feature '" +
-                        featureName + "': " + e);
-    }
-};
-
 // ── FORM MANAGEMENT ───────────────────────────────────────────
 // Idempotent: reads current companion state and total level, then
 // adds or removes only what needs to change. Safe to call on every
-// sheet load and every level-up without creating duplicate pages
-// or duplicate limited features.
+// sheet load and every level-up without creating duplicate pages.
 
 var ootdMH_manageForm = function() {
     var totalLevel, hasBull, hasDireBull, prefix, prefixes;
@@ -376,7 +320,6 @@ var ootdMH_manageForm = function() {
         // ── Dire Bull phase ───────────────────────────────────
         if (hasBull) {
             ootdMH_compRemove("bull (minotaur form)");
-            ootdMH_removeLimitedFeature(OOTD_MH_LF_BULL);
         }
         if (!hasDireBull) {
             prefix = ootdMH_compAdd("dire bull (minotaur form)");
@@ -399,7 +342,6 @@ var ootdMH_manageForm = function() {
             } else {
                 console.println("OotD-MH Warning: Failed to add Dire Bull companion page.");
             }
-            ootdMH_addLimitedFeature(OOTD_MH_LF_DIRE_BULL);
         } else {
             // Dire Bull already present — refresh notes only.
             prefixes = ootdMH_compFind("dire bull (minotaur form)");
@@ -410,7 +352,6 @@ var ootdMH_manageForm = function() {
         // ── Bull phase ────────────────────────────────────────
         if (hasDireBull) {
             ootdMH_compRemove("dire bull (minotaur form)");
-            ootdMH_removeLimitedFeature(OOTD_MH_LF_DIRE_BULL);
         }
         if (!hasBull) {
             prefix = ootdMH_compAdd("bull (minotaur form)");
@@ -433,7 +374,6 @@ var ootdMH_manageForm = function() {
             } else {
                 console.println("OotD-MH Warning: Failed to add Bull companion page.");
             }
-            ootdMH_addLimitedFeature(OOTD_MH_LF_BULL);
         } else {
             // Bull already present — refresh notes only.
             prefixes = ootdMH_compFind("bull (minotaur form)");
@@ -444,11 +384,9 @@ var ootdMH_manageForm = function() {
         // ── Below level 5 — no forms ─────────────────────────
         if (hasBull) {
             ootdMH_compRemove("bull (minotaur form)");
-            ootdMH_removeLimitedFeature(OOTD_MH_LF_BULL);
         }
         if (hasDireBull) {
             ootdMH_compRemove("dire bull (minotaur form)");
-            ootdMH_removeLimitedFeature(OOTD_MH_LF_DIRE_BULL);
         }
     }
 };
@@ -464,8 +402,8 @@ var ootdMH_manageForm = function() {
 // eval fires when the item is added and on each sheet load.
 // ootdMH_manageForm() is idempotent — safe to call on every reload.
 //
-// removeeval cleans up all companions and limited features when the
-// item is removed from the equipment list.
+// removeeval cleans up companion pages when the item is removed from
+// the equipment list.
 //
 // IMPORTANT: calcChanges["hp"] must not return a value. Any return
 // value would be added to the character's maximum hit points.
@@ -482,15 +420,14 @@ MagicItemsList["cursed transformation (minotaur)"] = {
         "This is a sheet tracker, not a magic item in the traditional sense. Add it " +
         "to your equipment list when playing a Thylean Minotaur to enable automatic " +
         "companion page management for the Cursed Transformation racial feature.\n\n" +
-        "At level 5: Bull Form companion page is added, and 'Bull Form (Cursed " +
-        "Transformation)' appears in your Limited Features as a 1/long rest ability.\n\n" +
-        "At level 9: Bull Form is removed and replaced with Dire Bull Form. The " +
-        "limited feature is updated accordingly.\n\n" +
+        "At level 5: Bull Form companion page is added automatically.\n\n" +
+        "At level 9: Bull Form is removed and replaced with Dire Bull Form.\n\n" +
         "Both forms include notes on the companion page covering the PHB stats, " +
-        "transformation rules, and the auto-trigger warning for bright reds.\n\n" +
+        "transformation rules, and the auto-trigger warning for bright reds. " +
+        "The Cursed Transformation limited feature (1/long rest) is managed by " +
+        "the base OotD script and is not duplicated here.\n\n" +
         "Remove this item only if you are no longer playing a Thylean Minotaur; " +
-        "doing so will remove all companion pages and limited features added by " +
-        "this tracker.",
+        "doing so will remove all companion pages added by this tracker.",
     eval : function() {
         ootdMH_manageForm();
         console.println("OotD-MH: Cursed Transformation tracker eval fired.");
@@ -498,9 +435,7 @@ MagicItemsList["cursed transformation (minotaur)"] = {
     removeeval : function() {
         ootdMH_compRemove("bull (minotaur form)");
         ootdMH_compRemove("dire bull (minotaur form)");
-        ootdMH_removeLimitedFeature(OOTD_MH_LF_BULL);
-        ootdMH_removeLimitedFeature(OOTD_MH_LF_DIRE_BULL);
-        console.println("OotD-MH: Tracker removed. Companions and limited features cleaned up.");
+        console.println("OotD-MH: Tracker removed. Companion pages cleaned up.");
     },
     calcChanges : {
         "hp" : function(totalHD, HDobj, prefix) {
