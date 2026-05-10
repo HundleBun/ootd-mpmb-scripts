@@ -132,7 +132,8 @@ CreatureList["dire bull (minotaur form)"] = {
     passivePerception : 14,
     senses            : "Passive Perception 14 (PHB; see companion notes)",
     challengeRating   : "2",
-    proficiencyBonus  : 2,
+    proficiencyBonus  : 1,            // Same as Bull — PHB does not specify to-hit for Dire Bull,
+                                      // but STR is identical (18, +4) so attack stays at +5.
     attacksAction     : 1,
     attacks           : [{
         name        : "Horns",
@@ -207,6 +208,42 @@ var ootdMH_compAdd = function(name) {
     return compFunc.add(name);
 };
 
+// ── EXACT-MATCH FIND AND REMOVE ───────────────────────────────
+// compFunc.find() and compFunc.remove() use .indexOf() (substring
+// matching). "bull (minotaur form)" is a substring of "dire bull
+// (minotaur form)", so searching for Bull incorrectly matches the
+// Dire Bull companion. These functions use strict equality instead,
+// preventing cascading removes when calcChanges["hp"] re-fires after
+// a companion is added.
+
+var ootdMH_findExact = function(name) {
+    var prefixes = [];
+    if (typeof isTemplVis !== "function" || typeof What !== "function") return prefixes;
+    var AScompA = isTemplVis('AScomp') ? What('Template.extras.AScomp').split(',') : false;
+    if (!AScompA) return prefixes;
+    var nameLower = name.toLowerCase();
+    for (var a = 1; a < AScompA.length; a++) {
+        if (String(What(AScompA[a] + 'Comp.Race') || '').toLowerCase() === nameLower) {
+            prefixes.push(AScompA[a]);
+        }
+    }
+    return prefixes;
+};
+
+var ootdMH_removeExact = function(name) {
+    if (typeof isTemplVis !== "function" || typeof DoTemplate !== "function" ||
+        typeof What !== "function") return;
+    var AScompA = isTemplVis('AScomp') ? What('Template.extras.AScomp').split(',') : false;
+    if (!AScompA) return;
+    var nameLower = name.toLowerCase();
+    for (var a = 1; a < AScompA.length; a++) {
+        if (String(What(AScompA[a] + 'Comp.Race') || '').toLowerCase() === nameLower) {
+            DoTemplate("AScomp", "Remove", AScompA[a], true);
+            console.println("OotD-MH: Removed companion: " + name);
+        }
+    }
+};
+
 // ── NOTES ─────────────────────────────────────────────────────
 // Notes are written to Cnote.Left on the companion page.
 // The header/footer strip ensures existing MPMB-written content
@@ -223,7 +260,8 @@ var ootdMH_buildNotes = function(formKey) {
         notes += "STATS (OotD PHB):\n";
         notes += "AC 11  |  HP 36 (4d10+12)  |  Speed 40 ft\n";
         notes += "STR 18 (+4)  DEX 10  CON 16 (+3)  INT 4 (-3)  WIS 10 (+0)  CHA 9 (-1)\n";
-        notes += "Passive Perception 14 (PHB; companion sheet field calculated from WIS will differ)\n\n";
+        notes += "Passive Perception 14 (PHB)\n";
+        notes += "Perception +4 (derived from passive perception; WIS 10 base + 4 = 14)\n\n";
         notes += "ATTACK \u2014 Horns: +5 to hit, 1d8+4 piercing\n";
         notes += "Charge: if moved 10+ ft straight toward target before hitting:\n";
         notes += "  +1d6 piercing damage  |  DC 11 STR save or knocked prone\n\n";
@@ -238,12 +276,12 @@ var ootdMH_buildNotes = function(formKey) {
         notes += "STATS (OotD PHB):\n";
         notes += "AC 12  |  HP 46 (5d10+12)  |  Speed 40 ft\n";
         notes += "STR 18 (+4)  DEX 10  CON 16 (+3)  INT 4 (-3)  WIS 10 (+0)  CHA 9 (-1)\n";
-        notes += "Passive Perception 14 (PHB; companion sheet field calculated from WIS will differ)\n\n";
-        notes += "ATTACK \u2014 Horns: 2d6+4 piercing\n";
+        notes += "Passive Perception 14 (PHB)\n";
+        notes += "Perception +4 (derived from passive perception; WIS 10 base + 4 = 14)\n\n";
+        notes += "ATTACK \u2014 Horns: +5 to hit, 2d6+4 piercing\n";
         notes += "Charge: if moved 10+ ft straight toward target before hitting:\n";
         notes += "  +1d10 piercing damage  |  DC 14 STR save or knocked prone\n\n";
-        notes += "SPECIAL:\n";
-        notes += "  Relentless (1/Day): If reduced to 0 HP, reduced to 1 HP instead.\n\n";
+        notes += "Relentless (1/Day): see Traits section on this companion page.\n\n";
         notes += "TRANSFORMATION RULES:\n";
         notes += "  Activate  : Bonus action\n";
         notes += "  Duration  : Until bonus action to revert, or until unconscious\n";
@@ -284,6 +322,7 @@ var ootdMH_writeNotes = function(prefix, formKey) {
             Value(prefix + "Cnote.Left", newContent);
             console.println("OotD-MH: Wrote " + formKey + " notes to " + prefix + "Cnote.Left");
         } catch(e) {
+            // (fall-through to Comp.Use.Traits handled below)
             console.println("OotD-MH Warning: Cnote.Left write failed, falling back to Comp.Use.Traits: " + e);
             try {
                 Value(prefix + "Comp.Use.Traits", newContent);
@@ -294,6 +333,25 @@ var ootdMH_writeNotes = function(prefix, formKey) {
         }
     } catch(e) {
         console.println("OotD-MH Warning: Could not write companion notes: " + e);
+    }
+
+    // Dire Bull only: write Relentless to the Traits section (Comp.Use.Traits).
+    // MPMB may not auto-render custom CreatureList traits to that field, so we
+    // write it explicitly. The check prevents duplication on reload.
+    if (formKey !== "bull") {
+        try {
+            var existingTraits = String(What(prefix + "Comp.Use.Traits") || "");
+            if (existingTraits.indexOf("Relentless") === -1) {
+                Value(prefix + "Comp.Use.Traits",
+                    existingTraits +
+                    (existingTraits.length > 0 ? "\n\n" : "") +
+                    "Relentless (1/Day). If the minotaur would be reduced to 0 hit " +
+                    "points, it is reduced to 1 hit point instead.");
+                console.println("OotD-MH: Wrote Relentless to " + prefix + "Comp.Use.Traits");
+            }
+        } catch(e) {
+            console.println("OotD-MH Warning: Could not write Relentless to Comp.Use.Traits: " + e);
+        }
     }
 };
 
@@ -313,13 +371,13 @@ var ootdMH_manageForm = function() {
     }
     if (totalLevel < 1) totalLevel = 1;
 
-    hasBull     = ootdMH_compFind("bull (minotaur form)").length > 0;
-    hasDireBull = ootdMH_compFind("dire bull (minotaur form)").length > 0;
+    hasBull     = ootdMH_findExact("bull (minotaur form)").length > 0;
+    hasDireBull = ootdMH_findExact("dire bull (minotaur form)").length > 0;
 
     if (totalLevel >= 9) {
         // ── Dire Bull phase ───────────────────────────────────
         if (hasBull) {
-            ootdMH_compRemove("bull (minotaur form)");
+            ootdMH_removeExact("bull (minotaur form)");
         }
         if (!hasDireBull) {
             prefix = ootdMH_compAdd("dire bull (minotaur form)");
@@ -344,14 +402,14 @@ var ootdMH_manageForm = function() {
             }
         } else {
             // Dire Bull already present — refresh notes only.
-            prefixes = ootdMH_compFind("dire bull (minotaur form)");
+            prefixes = ootdMH_findExact("dire bull (minotaur form)");
             if (prefixes.length > 0) ootdMH_writeNotes(prefixes[0], "dire");
         }
 
     } else if (totalLevel >= 5) {
         // ── Bull phase ────────────────────────────────────────
         if (hasDireBull) {
-            ootdMH_compRemove("dire bull (minotaur form)");
+            ootdMH_removeExact("dire bull (minotaur form)");
         }
         if (!hasBull) {
             prefix = ootdMH_compAdd("bull (minotaur form)");
@@ -376,17 +434,17 @@ var ootdMH_manageForm = function() {
             }
         } else {
             // Bull already present — refresh notes only.
-            prefixes = ootdMH_compFind("bull (minotaur form)");
+            prefixes = ootdMH_findExact("bull (minotaur form)");
             if (prefixes.length > 0) ootdMH_writeNotes(prefixes[0], "bull");
         }
 
     } else {
         // ── Below level 5 — no forms ─────────────────────────
         if (hasBull) {
-            ootdMH_compRemove("bull (minotaur form)");
+            ootdMH_removeExact("bull (minotaur form)");
         }
         if (hasDireBull) {
-            ootdMH_compRemove("dire bull (minotaur form)");
+            ootdMH_removeExact("dire bull (minotaur form)");
         }
     }
 };
@@ -433,8 +491,8 @@ MagicItemsList["cursed transformation (minotaur)"] = {
         console.println("OotD-MH: Cursed Transformation tracker eval fired.");
     },
     removeeval : function() {
-        ootdMH_compRemove("bull (minotaur form)");
-        ootdMH_compRemove("dire bull (minotaur form)");
+        ootdMH_removeExact("bull (minotaur form)");
+        ootdMH_removeExact("dire bull (minotaur form)");
         console.println("OotD-MH: Tracker removed. Companion pages cleaned up.");
     },
     calcChanges : {
