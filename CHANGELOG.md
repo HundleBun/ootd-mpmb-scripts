@@ -81,9 +81,40 @@ All notable changes to these scripts are documented here.
 
 ---
 
+## OotD_HerculeanMino.js
+
+### v1.1.0 — Current
+- **Exact-match companion functions**: Added `ootdMH_findExact()` and `ootdMH_removeExact()` using strict equality on `Comp.Race`. The library's default `find()`/`remove()` use substring matching — "bull (minotaur form)" is a substring of "dire bull (minotaur form)", causing the Dire Bull companion to be immediately removed after creation when `calcChanges["hp"]` re-fired.
+- **Dire Bull attack bonus fix**: `proficiencyBonus` corrected from 2 to 1. PHB does not specify to-hit for Dire Bull; kept consistent with Bull at +5 (STR +4 + prof +1).
+- **Relentless to Traits**: Relentless (1/Day) now written explicitly to `Comp.Use.Traits` on the Dire Bull companion page with a duplication guard. Previously only appeared in notes.
+- **Notes clarifications**: Relentless replaced with cross-reference to Traits section in `Cnote.Left`. Perception +4 explanation added to both form notes.
+
+### v1.0.1
+- Removed `languages` property from both `CreatureList` entries — was rendering as "Languages --" in the companion features box.
+- Fixed ability scores to match OotD PHB: `[18, 10, 16, 4, 10, 9]` (was `[18, 10, 16, 2, 14, 7]`).
+- Corrected companion notes stat block to reflect PHB values.
+- Removed Limited Feature tracking — base OotD script already tracks "Cursed Transformation" as a 1/long rest limited feature.
+
+### v1.0.0
+- Initial release.
+- Bull companion page added at level 5 with PHB stat block (AC 11, HP 36, Horns 1d8+4).
+- Dire Bull companion replaces Bull at level 9 (AC 12, HP 46, Horns 2d6+4, Relentless 1/day).
+- Companion notes written to `Cnote.Left`; refreshed automatically on every level-up.
+- Alert dialogs notify the player when forms are first added or upgraded.
+- `MagicItemsList["cursed transformation (minotaur)"]` hosts the `calcChanges["hp"]` level-up watcher — same mechanism as Crown of the Dragonlords in GiftedOneDragon.
+- Idempotent: safe to reload at any level without duplicate companions.
+
+---
+
 ## OotD_AmazonianFix.js
 
-### v1.0.0 — Current
+### v2.0.0 — Current
+- **Stimfay naming prompt**: On first companion add, prompts for a name and writes it to the companion's name field.
+- **Stimfay appearance prompt**: Companion add also prompts for an appearance description written to companion notes.
+- **Companion notes**: Notes populated automatically at add time with Stimfay stats, rules references, and player-entered appearance.
+- **Level 11 notes refresh**: Hook fires on HP recalc at level 11 (Improved Falconry upgrade) and rewrites companion notes to reflect updated stats without overwriting player-written content (header/footer strip pattern).
+
+### v1.0.0
 - Initial release.
 - Patches `TypeError` in `OdysseyOfTheDragonlords_v13.js` line 1543 where `ClassList.artificer.artificerCompFunc` or `ClassList.paladin.artificerCompFunc` may be undefined.
 - Defines safe `add`, `remove`, and `find` companion management functions on both `ClassList.paladin` and (when present) `ClassList.artificer`.
